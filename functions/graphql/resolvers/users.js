@@ -8,17 +8,86 @@ const { validateRegisterInput, validateLoginInput } = require('../../utility/val
 
 firebase.initializeApp(config)
 
+
 module.exports = {
-
-   
-
     Mutation : {
-      
+
+        async login(_, { username, password }) {
+
+            
+            const {errors, valid} = validateLoginInput(username, password);
+            if (!valid) throw new UserInputError('Errors', { errors })
+
+            try{
+                const { id, email, createdAt } = await db.doc(`/users/${username}`).get()
+                                                .then(doc => {
+                                                    if (!doc.exists) {
+                                                        throw new UserInputError('Username tidak ditemukan', {
+                                                            errors: { username: 'Username tidak tersedia' }
+                                                        })
+                                                    } else {
+                                                        return doc.data()
+                                                    }
+                                                })
+
+            const token = await firebase.auth().signInWithEmailAndPassword(email, password)
+                                                .then( data => data.user.getIdToken() )
+                                                .then( idToken => idToken )
+
+            return {
+                username,
+                id,
+                email,
+                createdAt,
+                token
+            }
+        }
+        catch(err){
+            console.log(err);
+            if(err.code === 'auth/invalid-email') throw new UserInputError('Pengguna tidak ditemukan!')
+            if(err.code === 'auth/wrong-password') throw new UserInputError('Password salah')
+            throw new Error(err)
+        }
+
+
+        },
+
+        // async login(_, { username, password }) {
+
+        //     const {errors, valid} = validateLoginInput(username, password);
+        //     if (!valid) throw new UserInputError('Errors', { errors })
+        
+        // let user;
+
+        // try {
+        //     await db.doc(`/users/${username}`).get()
+        //         .then(doc => {
+        //         if (doc.exists) {
+        //             user = doc.data()
+        //             return firebase.auth().signInWithEmailAndPassword(user.email, password)
+        //             }
+        //             else return firebase.auth().signInWithEmailAndPassword(username, password)
+        //         })
+        //         .then(data => {
+        //             return data.user.getIdToken()
+        //         })
+        //         .then((token) => {
+        //             user.token = token
+        //         })
+        //         return user
+        // }
+        // catch(err){
+
+        //     if (err.code === "auth/wrong-password") {
+        //         throw new UserInputError('Password anda salah')
+        //     } 
+        //     if (err.code === "auth/invalid-email") {
+        //         throw new UserInputError('Email/Username anda salah')
+        //     }
+        // }
+        // },
 
         async registerUser(_, {registerInput: { username, email, password, confirmPassword}}){
-       
-            console.log(username, email, password, confirmPassword);
-            
             // TODO: Cek apakah data user sudah pernah daftar ke firestore
             // TODO: Simpan data yang User input ke Firestore
             // TODO: Daftarkan user dengan data yang diinput ke Firebase Auth
@@ -29,7 +98,6 @@ module.exports = {
 
 
             const { valid, errors } = validateRegisterInput(username, email, password, confirmPassword)
-
             if (!valid) throw new UserInputError('Errors', { errors })
 
             let newUser = {
