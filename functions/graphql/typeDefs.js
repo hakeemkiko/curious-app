@@ -8,6 +8,7 @@ type Post {
     createdAt: String!
     commentCount: Int!
     likeCount: Int!
+    comments: [Comment!]
 }
 
 type User {
@@ -19,10 +20,20 @@ type User {
     token: String!
 }
 
-type Query {
-    getPosts: [Post]!
+type Comment {
+    id: ID!
+    owner: String!
+    createdAt: String!
+    text: String!
 }
 
+########## QUERY ##########
+type Query {
+    getPosts: [Post]!
+    getPost ( postId: ID!) : Post!
+}
+
+########## INPUT ##########
 input RegisterInput {
         username: String!
         password: String!
@@ -32,7 +43,20 @@ input RegisterInput {
 
 
 type Mutation {
+    # USER MUTATION
     registerUser( registerInput: RegisterInput ): User!
     login( username: String!, password: String! ): User!
+
+    #POSTS MUTATION
+    createPost( text: String! ) : Post!
+    deletePost( postId: ID! ) : String!
+    likePost( postId: ID! ) : Post!
+
+    #COMMENT MUTATION
+    createComment( postId: ID!, text: String! ) : Comment!
+    deleteComment( postId: ID!, commentId: ID! ) : String!
 }
 `
+
+
+
